@@ -1,0 +1,380 @@
+---
+title: "Question 2c) - part 1 YEAR 2006"
+author: "Candidate No. A13582 - Akithmi Wasalathanthri"
+date: "2024-03-29"
+output: html_document
+---
+
+*************************************
+*"Question 2c) part 1 - year 2006"*
+*************************************
+
+***********************************************************************************
+*"Importing libraries and functions necessary for data pre-processing of part c)"*
+***********************************************************************************
+
+" ******"run each chunk separately to get a faster output"******
+```{r}
+library(readr)
+#"For reading csv files"
+library(dplyr) 
+# "For data manipulation"
+library(ggplot2) 
+# "For data visualization"
+install.packages("caret")
+library(caret)
+install.packages("ROSE")
+library(ROSE)
+```
+.
+"
+
+
+*"Loading data set 2006"*
+```{r}
+dataset_2006 <- read.csv("C:/Users/user/Desktop/progdata/data2006.csv")
+head(dataset_2006)
+```
+
+*"Remove columns with missing values and other unnecessary columns"*
+```{r}
+colSums(is.na(dataset_2006))
+dataset_2006 <- subset(dataset_2006, select = -c(CancellationCode, AirTime, ArrDelay, ArrTime, TailNum))
+```
+*"Load airports an carriers dataset"*
+```{r}
+airports_dataset <- read.csv("C:/Users/user/Downloads/Programming/airports.csv")
+carriers_dataset <- read.csv("C:/Users/user/Downloads/Programming/carriers.csv")
+```
+
+*"merging and renaming new columns again"*
+```{r}
+data_origin <- merge(dataset_2006, airports_dataset, by.x='Origin', by.y='iata', all.x=TRUE, suffixes=c('_origin', '_dest'))
+data_dest <- merge(data_origin, airports_dataset, by.x='Dest', by.y='iata', all.x=TRUE, suffixes=c('_origin', '_dest'))
+dataset_merged <- merge(data_dest, carriers_dataset, by.x='UniqueCarrier', by.y='Code', all.x=TRUE)
+colnames(dataset_merged)[colnames(dataset_merged) == 'UniqueCarrier'] <- 'UniqueCarrier_code'
+```
+
+*"Removing additional unnecessary columns and checking if it affects the Diverted counts"*
+```{r}
+dataset_merged <- dataset_merged[, !(names(dataset_merged) %in% c("Description"))]
+colSums(is.na(dataset_merged))
+dataset_merged <- dataset_merged[, !(names(dataset_merged) %in% c("city_origin", "state_origin", "city_dest", "ActualElapsedTime"))]
+table(dataset_merged$Diverted)
+dataset_merged <- dataset_merged[complete.cases(dataset_merged), ]
+colSums(is.na(dataset_merged))
+table(dataset_merged$Diverted)
+```
+
+
+*"Removing duplicated rows"*
+```{r}
+dataset_merged <- unique(dataset_merged)
+table(dataset_merged$Diverted)
+```
+
+```{r}
+str(dataset_merged)
+```
+
+*************
+*Modelling*
+*************
+
+*"Encoding categorical columns"*
+```{r}
+dataset_merged <- dataset_merged[, !names(dataset_merged) %in% c("Cancelled", "TailNum", "TaxiIn")]
+dataset_merged <- dataset_merged[, !names(dataset_merged) %in% c("airport_origin", "airport_dest")]
+categorical_columns <- dataset_merged[, sapply(dataset_merged, is.factor)]
+print(names(categorical_columns))
+cat_cols <- c('Dest', 'Origin', 'country_origin', 'state_dest', 'country_dest', 'UniqueCarrier_code')
+
+for (col in cat_cols) {
+  if (col %in% names(dataset_merged)) {  # Check if column exists in dataset
+    dataset_merged[[col]] <- as.factor(dataset_merged[[col]])
+  }
+}
+
+```
+```{r}
+str(dataset_merged)
+```
+
+```{r}
+# "Dropping the "Diverted" column from the data set"
+q2c_dataset <- subset(dataset_merged, select = -c(Diverted))
+dim(q2c_dataset)
+```
+*"Splitting the data set"*
+```{r}
+# "Set the seed for reproducibility"
+set.seed(0)
+
+# "Subset the dataset to exclude the target variable"
+X <- subset(dataset_merged, select = -c(Diverted))
+
+# "Extract the target variable"
+y <- dataset_merged$Diverted
+
+# "Split the data into training and testing sets"
+train_index <- createDataPartition(y, p = 0.7, list = FALSE)
+X_train <- X[train_index, ]
+X_test <- X[-train_index, ]
+y_train <- y[train_index]
+y_test <- y[-train_index]
+
+# "Check the dimensions of the training and testing sets"
+dim(X_train)
+dim(X_test)
+```
+
+
+```{r}
+# "Counting the occurrences of each value in the 'Diverted' column of the training set"
+table(y_train)
+```
+
+
+*************************************************************
+*"Visualizing the the Diverted class counts in the Dataset"*
+*************************************************************
+
+```{r}
+diverted_counts <- c(4899253, 11439  )
+labels <- c("Not Diverted", "Diverted")
+pie(diverted_counts, labels = labels, main = "Percentage of Flights Diverted - 2006", col = c("skyblue", "lightgreen"))
+text(-1, -0.2, "99.8%", col = "black", cex = 0.8)
+text(1, -0.2, "0.2%", col = "black", cex = 0.8)
+```
+
+***********************************
+*"Balancing the Diverted Counts"*
+***********************************
+
+```{r}
+train_set <- cbind(X_train, y_train)
+# "Combining X_train and y_train to make the train set"
+colnames(train_set)[ncol(train_set)] <- "Diverted"
+str(train_set)
+table(train_set$Diverted)
+```
+
+```{r}
+set.seed(42)
+dataset_majority <- train_set[train_set$Diverted == 0, ]
+dataset_minority <- train_set[train_set$Diverted == 1, ]
+str(dataset_majority)
+str(dataset_minority)
+# "Separating the majority and minority classes"
+```
+
+
+
+```{r}
+set.seed(42)
+desired_count_majority <- 180000 # "the desired count for the majority class for downsampling'
+shuffled_majority <- dataset_majority[sample(nrow(dataset_majority)), ]
+dataset_majority_downsampled <- shuffled_majority[1:desired_count_majority, ]
+# "Subset the shuffled majority class to the desired count"
+dim(dataset_majority_downsampled)
+str(dataset_majority_downsampled)
+```
+
+*"Oversampling minority class in Diverted"*
+```{r}
+# "Set seed for reproducibility"
+set.seed(42)
+
+# "Desired count of the minority class"
+desired_count_minority <- 162000
+
+# "Calculate the number of times each minority sample needs to be replicated"
+replication_factor <- ceiling(desired_count_minority / nrow(dataset_minority))
+
+# "Replicate minority samples"
+dataset_minority_oversampled <- dataset_minority[replicate(replication_factor, seq_len(nrow(dataset_minority))), ]
+dataset_minority_oversampled <- dataset_minority_oversampled[1:desired_count_minority, ]
+```
+
+```{r}
+dim(dataset_minority_oversampled)
+str(dataset_minority_oversampled)
+```
+
+```{r}
+# "Combining the down-sampled majority class and the over-sampled minority class"
+balanced_train_set <- rbind(dataset_majority_downsampled, dataset_minority_oversampled)
+
+table(balanced_train_set$Diverted)
+```
+
+```{r}
+diverted_count <- c(180000, 162000)
+labels_2 <- c('Not Diverted', 'Diverted')
+pie(diverted_count, labels = labels_2, main = "Percentage of Flights Diverted - 2006", col = c("skyblue", "lightgreen"))
+
+# Adding percentage labels
+text(-0.2, 0.5, "47.4%", col = "black", cex = 0.8)
+text(0.2, -0.5, "52.6%", col = "black", cex = 0.8)
+```
+```{r}
+str(balanced_train_set)
+```
+
+```{r}
+# "Making the new X_train and y_train"
+X_train <- balanced_train_set[, !names(balanced_train_set) %in% "Diverted"]
+y_train <- balanced_train_set$Diverted
+```
+
+"
+```{r}
+# "Fit logistic regression model"
+model_lr <- glm(Diverted ~ ., 
+                data = standardized_data, 
+                family = binomial(link = "logit"),
+                control = list(maxit = 50))
+
+# "Make predictions on test dataset"
+test_data$predicted_divert <- predict(model_lr, newdata = test_data, type = "response")
+test_data$predicted_divert <- ifelse(test_data$predicted_divert > 0.5, 1, 0)
+
+# "Creating confusion matrix"
+confusionMatrix(factor(test_data$predicted_divert), factor(test_data$Diverted))
+```
+
+"To make it easier we are manually calculating the values for an efficient output"
+```{r}
+# "Confusion matrix values"
+TP <- 3168   
+# "True Positives"
+FP <- 430546    
+# "False Positives"
+FN <- 1674   
+# "False Negatives"
+TN <- 1669194   
+# "True Negatives"
+
+#"Calculations:"
+# "Accuracy" 
+accuracy <- (TP + TN) / (TP + FP + FN + TN)
+
+# "Precision"
+precision <- TP / (TP + FP)
+
+# "Recall"
+recall <- TP / (TP + FN)
+
+# "F1 score"
+f1_score <- 2 * ((precision * recall) / (precision + recall))
+print(paste("Accuracy - 2006:", round(accuracy, 4)))
+print(paste("F1 Score - 2006:", round(f1_score, 4)))
+```
+
+```{r}
+# "Predict probabilities using logistic regression model"
+y_proba_lr <- predict(model_lr, newdata = test_data, type = "response")
+
+# "Check the dimensions of y_proba_lr"
+dim(y_proba_lr) 
+# "Make sure it has the expected dimensions"
+install.packages("pROC")
+library(pROC)
+
+# "Create ROC object"
+roc_obj <- roc(test_data$Diverted, y_proba_lr)
+ggroc(roc_obj, legacy.axes = TRUE , lwd = 1) +
+  ggtitle("ROC Curve - Logistic Regression model") +
+  xlab("False Positive Rate") +
+  ylab("True Positive Rate") +
+  theme_minimal() +
+  geom_abline(intercept = 0, slope = 1, linetype = "dashed", color = "blue", size = 1) +
+  geom_text(x = 0.8, y = 0.1, label = paste("AUC =", round(auc(roc_obj), 2)), color = "red", size = 5)
+
+```
+
+
+```{r}
+# "Confusion matrix values"
+TP <- 3168   
+# "True Positives"
+FP <- 430546    
+# "False Positives"
+FN <- 1674   
+# "False Negatives"
+TN <- 1669194   
+# "True Negatives"
+
+# "Calculate precision, recall, and F1-score"
+precision_0 <- TN / (TN + FN)
+precision_1 <- TP / (TP + FP)
+
+recall_0 <- TN / (TN + FP)
+recall_1 <- TP / (TP + FN)
+
+f1_score_0 <- 2 * (precision_0 * recall_0) / (precision_0 + recall_0)
+f1_score_1 <- 2 * (precision_1 * recall_1) / (precision_1 + recall_1)
+
+# "Calculate support"
+support_0 <- TN + FP
+support_1 <- TP + FN
+total_support <- support_0 + support_1
+
+# "Calculate accuracy"
+accuracy <- (TN + TP) / total_support
+
+# "Print the classification report"
+cat("Classification Report - 2006:\n")
+cat("             precision    recall  f1-score   support\n\n")
+cat("           0   ", sprintf("%.2f", precision_0), "      ", sprintf("%.2f", recall_0), "     ", sprintf("%.2f", f1_score_0), "    ", support_0, "\n")
+cat("           1   ", sprintf("%.2f", precision_1), "      ", sprintf("%.2f", recall_1), "     ", sprintf("%.2f", f1_score_1), "    ", support_1, "\n\n")
+cat("    accuracy                          ", sprintf("%.2f", accuracy), "   ", total_support, "\n")
+cat("   macro avg   ", sprintf("%.2f", (precision_0 + precision_1) / 2), "      ", sprintf("%.2f", (recall_0 + recall_1) / 2), "     ", sprintf("%.2f", (f1_score_0 + f1_score_1) / 2), "   ", total_support, "\n")
+cat("weighted avg   ", sprintf("%.2f", (precision_0 * support_0 + precision_1 * support_1) / total_support), "      ", sprintf("%.2f", (recall_0 * support_0 + recall_1 * support_1) / total_support), "     ", sprintf("%.2f", (f1_score_0 * support_0 + f1_score_1 * support_1) / total_support), "   ", total_support, "\n")
+
+```
+*"creating the coefficients table"*
+```{r}
+coefficients <- coef(model_lr)
+columns <- colnames(train_data)
+length(coefficients)
+length(columns)
+coefficients_table <- data.frame(Coefficient = coefficients, Variable = columns)
+coefficients_table
+```
+
+End
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+."

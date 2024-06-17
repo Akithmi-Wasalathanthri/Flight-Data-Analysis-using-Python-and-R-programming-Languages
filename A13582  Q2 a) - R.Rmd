@@ -1,0 +1,579 @@
+---
+title: "Question 2a)"
+author: "Candidate No. A13582 - Akithmi Wasalathanthri"
+date: "2024-03-24"
+output: html_document
+---
+"
+*********************
+*"Question - 2a)"*
+*********************
+
+*"Importing the necessary libraries for question 2 part (a)"*
+```{r}
+library(readr) 
+# "For reading CSV files"
+library(dplyr) 
+# "For data manipulation"
+library(ggplot2) 
+# "For data visualization"
+```
+
+
+```{r}
+# "Read the merged data set for 2006 and 2007"
+merged_dataset <- read.csv("C:/Users/user/Desktop/progdata/mergedata2006n2007.csv")
+```
+
+```{r}
+# "Checking the data types in the merged data set"
+str(merged_dataset)
+
+# "Changing the data type of the 'CRSDepTime' column to integer"
+merged_dataset$CRSDepTime <- as.integer(merged_dataset$CRSDepTime)
+
+# "Rechecking data types of the merged data set"
+str(merged_dataset)
+```
+
+******************************************************
+*"Cleaning the data set seperately for Arrival Delay"*
+******************************************************
+
+```{r}
+# "Extracting the desired columns for question 2 part (a) for arrival delay"
+q2a_arr_dataset <- merged_dataset[, c("Year", "Month", "DayOfWeek", "CRSDepTime", "ArrDelay")]
+
+# "Displaying the first few rows of the data set
+head(q2a_arr_dataset)
+
+# "Checking for any null values in the data set 'q2a_arr_dataset'"
+colSums(is.na(q2a_arr_dataset))
+
+# "Dropping the null values in q2a_arr_dataset"
+q2a_arr_dataset <- na.omit(q2a_arr_dataset)
+
+# "Displaying the first few rows after removing null values"
+head(q2a_arr_dataset)
+
+# "Re-checking for any null values that weren't removed"
+colSums(is.na(q2a_arr_dataset))
+
+# "Removing early arrivals from the data set"
+q2a_arr_dataset <- q2a_arr_dataset[q2a_arr_dataset$ArrDelay >= 0, ]
+head(q2a_arr_dataset)
+
+```
+
+************************************************************
+*" Cleaning the data set separately for Departure Delay"*
+************************************************************
+
+```{r}
+# "Extracting the desired columns for question 2 part (a) for departure delay"
+q2a_dep_dataset <- merged_dataset[, c("Year", "Month", "DayOfWeek", "CRSDepTime", "DepDelay")]
+
+# "Checking for any null values in the data set 'q2a_dep_dataset'"
+colSums(is.na(q2a_dep_dataset))
+
+# "Dropping the null values in q2a_dep_dataset"
+q2a_dep_dataset <- na.omit(q2a_dep_dataset)
+
+#"Re-checking for any null values that weren't removed"
+colSums(is.na(q2a_dep_dataset))
+
+# "Removing early departures from the data set"
+q2a_dep_dataset <- q2a_dep_dataset[q2a_dep_dataset$DepDelay >= 0, ]
+head(q2a_dep_dataset)
+```
+
+***********************************************************************************
+*"(i) Analyzing the distribution of arrival delay and departure delay variables"*
+***********************************************************************************
+
+```{r}
+# "Extracting only the Arrival Delay data"
+delay_arr <- q2a_arr_dataset$ArrDelay
+
+# "Extracting only the Departure Delay data"
+delay_dep <- q2a_dep_dataset$DepDelay
+
+# "Filtering the data needed by year only for the year 2006"
+delayfor_arr_06 <- q2a_arr_dataset[q2a_arr_dataset$Year == 2006, ]$ArrDelay
+delayfor_dep_06 <- q2a_dep_dataset[q2a_dep_dataset$Year == 2006, ]$DepDelay
+
+```
+
+*"Plotting a box plot and a violin plot to show the distributions with outliers included for year 2006"*
+
+```{r}
+# "Install and load the 'vioplot' package"
+install.packages("vioplot")
+library(vioplot)
+
+# "Creating a boxplot and violin plot for 2006"
+par(mfrow = c(1, 2), mar = c(5, 5, 2, 2))
+boxplot(delayfor_arr_06, delayfor_dep_06, names = c("Arrival Delay", "Dep Delay"), 
+        main = "Box Plot - 2006", 
+        xlab = "Delay Type", ylab = "Delay Time (minutes)", col = c("navy", "orange"))
+vioplot(delayfor_arr_06, delayfor_dep_06, names = c("Arrival Delay", "Dep Delay"), 
+        main = "Violin Plot - 2006 ", 
+        xlab = "Delay Type", ylab = "Density", col = c("navy", "orange"))
+
+```
+
+ *"Plotting a box plot and a violin plot to show the distributions with outliers included for year 2007"*
+ 
+```{r}
+# "Filtering the data needed by year only for the year 2007"
+delayfor_arr_2007 <- q2a_arr_dataset[q2a_arr_dataset$Year == 2007, ]$ArrDelay
+delayfor_dep_2007 <- q2a_dep_dataset[q2a_dep_dataset$Year == 2007, ]$DepDelay
+
+# "Creating a boxplot and violin plot for 2006"
+par(mfrow = c(1, 2), mar = c(5, 5, 2, 2))
+boxplot(delayfor_arr_2007, delayfor_dep_2007, names = c("Arrival Delay", "Dep Delay"), 
+        main = "Box Plot - 2007", 
+        xlab = "Delay Type", ylab = "Delay Time (minutes)", col = c("navy", "orange"))
+vioplot(delayfor_arr_06, delayfor_dep_2007, names = c("Arrival Delay", "Dep Delay"), 
+        main = "Violin Plot - 2007", 
+        xlab = "Delay Type", ylab = "Density", col = c("navy", "orange"))
+```
+
+ *"Comparing the distributions using box plots only by each year for 2006 and 2007"*
+
+```{r}
+par(mfrow = c(1, 2), mar = c(5, 5, 2, 2))
+boxplot(delayfor_arr_06, delayfor_dep_06, names = c("Arrival Delay", "Dep Delay"), 
+        main = "Box Plot - 2006", 
+        xlab = "Delay Type", ylab = "Delay Time (minutes)", col = c("#08526A", "#08526A"), 
+        outline = FALSE, boxwex = 0.5)
+
+boxplot(delayfor_arr_2007, delayfor_dep_2007, names = c("Arrival Delay", "Dep Delay"), 
+        main = "Box Plot - 2007", 
+        xlab = "Delay Type", ylab = "Delay Time (minutes)", col = c("#e43c6f", "#e43c6f"), 
+        outline = FALSE, boxwex = 0.5)
+
+
+```
+
+*****************************************************************************
+*"(ii) Evaluating the Best time of the day in a week to travel (by hour)"*
+*****************************************************************************
+
+```{r}
+# "Grouping the Scheduled Arrival Time into intervals or bins to analyze arrival delays data set separately"
+q2a_arr_dataset$HoursBinned <- floor(q2a_arr_dataset$CRSDepTime / 100)
+
+# "Grouping the Scheduled Departure Time into intervals or bins to analyze departure delays data set separately"
+q2a_dep_dataset$Hours_Binned <- floor(q2a_dep_dataset$CRSDepTime / 100)
+str(q2a_arr_dataset)
+str(q2a_dep_dataset)
+```
+
+
+```{r}
+# "Defining range and labels for binning"
+range <- c(0,100,200,300,400,500,600,700,800,900,1000,1100,1200,1300,1400,1500,1600,1700,1800,1900,2000,2100,2200,2300,2400)
+labels <- c('0-1','1-2','2-3','3-4','4-5','5-6','6-7','7-8','8-9','9-10','10-11','11-12','12-13','13-14','14-15','15-16','16-17','17-18','18-19','19-20','20-21','21-22','22-23','23-24')
+```
+
+```{r}
+# "Binning the Scheduled Departure Time into intervals"
+q2a_arr_dataset$CRSDepTime <- cut(q2a_arr_dataset$CRSDepTime, breaks = range, labels = labels)
+q2a_dep_dataset$CRSDepTime <- cut(q2a_dep_dataset$CRSDepTime, breaks = range, labels = labels)
+
+# "Changing the type of the variable CRSDepTime to category"
+q2a_arr_dataset$CRSDepTime <- as.factor(q2a_arr_dataset$CRSDepTime)
+q2a_dep_dataset$CRSDepTime <- as.factor(q2a_dep_dataset$CRSDepTime)
+# "Rechecking data types"
+str(q2a_arr_dataset)
+str(q2a_dep_dataset)
+```
+
+
+```{r}
+# "Extract unique years from the data set"
+years <- unique(q2a_arr_dataset$Year)
+
+ggplot() +
+  # "Loop through each year"
+  lapply(years, function(year) {
+    # "Subset data for the current year"
+    arr_datayearly <- q2a_arr_dataset[q2a_arr_dataset$Year == year, ]
+    #" Calculate median arrival delay for each hour of the day"
+    median_arrdelay_byhr <- aggregate(ArrDelay ~ CRSDepTime, data = arr_datayearly, FUN = median)
+    # "Set color based on year"
+    color <- ifelse(year == 2006, "red", "darkgreen")
+    # "Plot median arrival delay for each hour"
+    geom_line(data = median_arrdelay_byhr, aes(x = CRSDepTime, y = ArrDelay, group = 1, color = as.factor(year)), size = 1.1)
+  }) +
+  # "Set labels and title of the graph"
+  labs(title = "Median Arrival Delay by Hour for 2006 and 2007",
+       x = "Hours in each day",
+       y = "Median Arrival Delay",
+       color = "Year") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(color = "gray", linetype = "dotted"))
+
+```
+
+
+```{r}
+# "Extract unique years from the data set
+years <- unique(q2a_dep_dataset$Year)
+
+ggplot() +
+  # "Loop through each year"
+  lapply(years, function(year) {
+    # "Subset data for the current year"
+    dep_datayearly <- q2a_dep_dataset[q2a_dep_dataset$Year == year, ]
+    # "Calculate median departure delay for each hour of the day"
+    median_depdelay_byhr <- aggregate(DepDelay ~ CRSDepTime, data = dep_datayearly, FUN = median)
+    # "Set color based on year"
+    color <- ifelse(year == 2006, "red", "darkgreen")
+    geom_line(data = median_depdelay_byhr, aes(x = CRSDepTime, y = DepDelay, color = as.factor(year), group = 1), size = 1)
+  }) +
+  labs(title = "Median Departure Delay by Hour for Different Years",
+       x = "Hour",
+       y = "Median Departure Delay",
+       color = "Year") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(color = "gray", linetype = "dotted"))
+
+```
+
+```{r}
+# "Extract unique years from the data set"
+years <- unique(q2a_arr_dataset$Year)
+
+ggplot() +
+  lapply(years, function(year) {
+    yr_arrivaldata <- q2a_arr_dataset[q2a_arr_dataset$Year == year, ]
+    yr_departuredata <- q2a_dep_dataset[q2a_dep_dataset$Year == year, ]
+    tot_delay_byhr <- merge(
+      aggregate(ArrDelay ~ CRSDepTime, data = yr_arrivaldata, FUN = median),
+      aggregate(DepDelay ~ CRSDepTime, data = yr_departuredata, FUN = median),
+      by = "CRSDepTime"
+    ) %>%
+      transmute(CRSDepTime, TotalDelay = ArrDelay + DepDelay)
+    color <- ifelse(year == 2006, "red", "darkgreen")
+    geom_line(data = tot_delay_byhr, aes(x = CRSDepTime, y = TotalDelay, color = as.factor(year), group = 1), size = 0.9)
+  }) +
+  labs(title = "Total Delay by Hour for Different Years",
+       x = "Hour",
+       y = "Total Delay",
+       color = "Year") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  theme(legend.position = "right") +
+  theme(panel.grid.major = element_line(color = "gray", linetype = "dotted"))
+```
+
+*************************************************************
+*"(iii) Analysis for the Best day of the week to travel"*
+*************************************************************
+
+
+```{r}
+
+color_2006 <- "#8474c7"
+color_2007 <- "#71bbee"
+
+years <- unique(q2a_arr_dataset$Year)
+
+plot_data <- data.frame()
+
+for (year in years) {
+  yr_arrdata <- q2a_arr_dataset[q2a_arr_dataset$Year == year, ]
+  med_arr_delay_byhr <- aggregate(ArrDelay ~ DayOfWeek, data = yr_arrdata, FUN = median)
+  med_arr_delay_byhr$Year <- year
+  plot_data <- rbind(plot_data, med_arr_delay_byhr)
+}
+
+ggplot(plot_data, aes(x = as.factor(DayOfWeek), y = ArrDelay, fill = as.factor(Year))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.4), width = 0.4) +
+  scale_fill_manual(values = c(color_2006, color_2007)) +
+  labs(x = "Day of Week", y = "Delay Time (minutes)", title = "Median Arrival Delays by Week", fill = "Year") +
+  scale_x_discrete(labels = c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")) +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+
+```{r}
+color_2006 <- "#ae8fdc"
+color_2007 <- "#86ddf3"
+
+years <- unique(q2a_dep_dataset$Year)
+
+plot_data <- data.frame()
+
+for (year in years) {
+  yr_depdata <- q2a_dep_dataset[q2a_dep_dataset$Year == year, ]
+  med_depdelay_byhr <- aggregate(DepDelay ~ DayOfWeek, data = yr_depdata, FUN = median)
+  med_depdelay_byhr$Year <- year
+  plot_data <- rbind(plot_data, med_depdelay_byhr)
+}
+
+# "the plot"
+ggplot(plot_data, aes(x = as.factor(DayOfWeek), y = DepDelay, fill = as.factor(Year))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.4), width = 0.4) +
+  scale_fill_manual(values = c(color_2006, color_2007)) +
+  labs(x = "Day of Week", y = "Delay Time (minutes)", title = "Median Departure Delays by Week", fill = "Year") +
+  scale_x_discrete(labels = c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")) +
+  theme_minimal() +
+  theme(legend.position = "top")
+```
+
+```{r}
+color_2006 <- "#d395e0"
+color_2007 <- "#feb2da"
+
+years <- unique(q2a_arr_dataset$Year)
+
+plot_data <- data.frame()
+
+for (year in years) {
+  yr_arrdata <- q2a_arr_dataset[q2a_arr_dataset$Year == year, ]
+  yr_depdata <- q2a_dep_dataset[q2a_dep_dataset$Year == year, ]
+  tot_delay_byhr <- aggregate(ArrDelay ~ DayOfWeek, data = yr_arrdata, FUN = median) +
+                    aggregate(DepDelay ~ DayOfWeek, data = yr_depdata, FUN = median)
+  tot_delay_byhr$Year <- year
+  plot_data <- rbind(plot_data, tot_delay_byhr)
+}
+
+ggplot(plot_data, aes(x = as.factor(DayOfWeek), y = ArrDelay, fill = as.factor(Year))) +
+  geom_bar(stat = "identity", position = position_dodge(width = 0.4), width = 0.4) +
+  scale_fill_manual(values = c(color_2006, color_2007)) +
+  labs(x = "Day of Week", y = "Delay Time (minutes)", title = "Median Total Delays by Week", fill = "Year") +
+  scale_x_discrete(labels = c("MON", "TUE", "WED", "THU", "FRI", "SAT", "SUN")) +
+  theme_minimal() +
+  theme(legend.position = "top")
+
+```
+
+```{r}
+# "Defining the days in a week"
+days_inweek <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+
+# "Loop through each year"
+for (year in unique(q2a_arr_dataset$Year)) {
+  plt <- ggplot()
+  
+  
+  for (i in 1:length(days_inweek)) {
+    # "Filter data for the current year and weekday"
+    yearly_arr <- q2a_arr_dataset[q2a_arr_dataset$Year == year & q2a_arr_dataset$DayOfWeek == i, ]
+    yearly_dep <- q2a_dep_dataset[q2a_dep_dataset$Year == year & q2a_dep_dataset$DayOfWeek == i, ]
+    
+    # "Calculate median arrival delay for each hour"
+    median_arrdelay <- aggregate(ArrDelay ~ CRSDepTime, data = yearly_arr, FUN = median)
+    
+    # "Calculate median departure delay for each hour"
+    median_depdelay <- aggregate(DepDelay ~ CRSDepTime, data = yearly_dep, FUN = median)
+    
+    # "Calculate total median delay for each hour"
+    tot_median_delay <- median_arrdelay$ArrDelay + median_depdelay$DepDelay
+    
+    # "Combine data for plotting"
+    plot_data <- data.frame(Hour = median_arrdelay$CRSDepTime, Total_Median_Delay = tot_median_delay, Weekday = days_inweek[i])
+    
+    # "Add lines to the plot for each weekday"
+    plt <- plt + geom_line(data = plot_data, aes(x = Hour, y = Total_Median_Delay, group = Weekday, color = Weekday), 
+                           size = ifelse(year == 2006, 0.8, 1))
+  }
+  
+  # "Set plot "
+  plt <- plt + labs(title = paste("Total Median Delay by Hour for Each Day of the Week -", year),
+                    x = "Hour of Day",
+                    y = "Total Median Delay (minutes)") +
+    scale_color_brewer(palette = "Set1") +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+    theme(legend.position = "bottom") +
+    theme(panel.grid.major = element_line(color = "gray", linetype = "dotted"))
+
+  print(plt)
+}
+
+```
+
+
+```{r}
+# "Define days of the week"
+days_inweek <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+
+# "Create a new plot"
+plt <- ggplot()
+
+# "Define colors for each combination of weekday and year"
+line_colors <- c("Thursday_2006" = "red", "Friday_2006" = "blue", "Wednesday_2007" = "green",
+                 "Thursday_2007" = "orange", "Sunday_2007" = "purple")
+
+# "Loop through each year"
+for (year in c(2006, 2007)) {
+  # "Loop through selected days of the week"
+  for (i in 1:length(days_inweek)) {
+    if ((year == 2006 && i %in% c(4, 5)) || (year == 2007 && i %in% c(3, 4, 7))) {
+      # "Filter data for the current year and selected days of the week"
+      year_arrdata <- q2a_arr_dataset[q2a_arr_dataset$Year == year & q2a_arr_dataset$DayOfWeek == i, ]
+      # "Calculate median arrival delay for each hour"
+      median_arrdelay <- aggregate(ArrDelay ~ CRSDepTime, data = year_arrdata, FUN = median)
+      # "Combine data for plotting"
+      plot_data <- data.frame(Hour = median_arrdelay$CRSDepTime, Median_Arrival_Delay = median_arrdelay$ArrDelay, 
+                              Year = factor(year), Weekday = days_inweek[i], Category = paste(days_inweek[i], year, sep = "_"))
+      plt <- plt + geom_line(data = plot_data, aes(x = Hour, y = Median_Arrival_Delay, 
+                                                   color = Category, group = Category), 
+                             size = 1)
+    }
+  }
+}
+
+# "Set plot" 
+plt <- plt + labs(title = "Median Arrival Delay by Hour for Selected Days of the Week",
+                  x = "Hour of Day",
+                  y = "Median Arrival Delay (minutes)",
+                  color = "Category") +
+  scale_color_manual(values = line_colors) +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 9),
+        legend.key.size = unit(2, "lines"),
+        legend.box.margin = margin(0, 10, 0, 10)) +
+  guides(color = guide_legend(override.aes = list(size = 0.5)))
+
+print(plt)
+
+```
+
+
+```{r}
+
+str(q2a_dep_dataset)
+summary(is.na(q2a_dep_dataset))
+
+```
+
+```{r}
+# "Convert CRSDepTime to numeric"
+q2a_dep_dataset$CRSDepTime <- as.numeric(levels(q2a_dep_dataset$CRSDepTime))[q2a_dep_dataset$CRSDepTime]
+
+# "Check the structure of the data set again"
+str(q2a_dep_dataset)
+
+```
+
+```{r}
+# "Check unique values of CRSDepTime before conversion"
+unique_values <- unique(q2a_dep_dataset$CRSDepTime)
+print(unique_values)
+```
+
+```{r}
+# "Remove rows with NA values in CRSDepTime"
+q2a_dep_dataset <- q2a_dep_dataset[!is.na(q2a_dep_dataset$CRSDepTime), ]
+
+# "check the structure of the data set again"
+str(q2a_dep_dataset)
+
+```
+
+
+```{r}
+
+# "Define days of the week"
+days_inweek <- c('Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday')
+
+# "Define custom colors"
+colors <- c('#fa3b5a', '#028886')
+
+# "Create a new plot"
+plt <- ggplot()
+
+# "Loop through each year"
+for (idx in 1:2) {
+  year <- c(2006, 2007)[idx]
+  
+  # "Loop through selected days of the week"
+  for (i in 1:length(days_inweek)) {
+    # "Filter data for the current year and selected weekdays"
+    yr_depdata <- q2a_dep_dataset[q2a_dep_dataset$Year == year & q2a_dep_dataset$DayOfWeek == i, ]
+    
+    # "Check if there are any rows left after filtering"
+    if (nrow(yr_depdata) > 0) {
+      # "Remove missing values"
+      yr_depdata <- na.omit(yr_depdata)
+      
+      # "Convert CRSDepTime to numeric if it's a factor"
+      if (is.factor(yr_depdata$CRSDepTime)) {
+        yr_depdata$CRSDepTime <- as.numeric(as.character(yr_depdata$CRSDepTime))
+      }
+      
+      # "Check if there are any rows left after removing missing values"
+      if (nrow(yr_depdata) > 0) {
+        # "Calculate median departure delay for each hour"
+        med_depdelay <- tapply(yr_depdata$DepDelay, yr_depdata$CRSDepTime, median, na.rm = TRUE)
+        
+        # "Convert the result to a data frame"
+        med_depdelay_df <- data.frame(CRSDepTime = as.numeric(names(med_depdelay)), DepDelay = med_depdelay)
+        
+        
+        plt <- plt + geom_line(data = med_depdelay_df, aes(x = CRSDepTime, y = DepDelay, group = 1), 
+                               color = colors[idx], size = 2) +
+                labs(title = paste("Median Departure Delay by Hour for Selected Days of the Week"), 
+                     x = "Hour of Day", y = "Median Departure Delay (minutes)")
+      }
+    }
+  }
+}
+
+# " the plot"
+plt <- plt +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.position = "bottom",
+        legend.title = element_blank(),
+        legend.text = element_text(size = 16),
+        legend.key.size = unit(2, "lines"),
+        legend.box.margin = margin(0, 10, 0, 10)) +
+  scale_x_continuous(breaks = seq(0, 2400, by = 100))
+
+print(plt)
+```
+
+
+END
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+."

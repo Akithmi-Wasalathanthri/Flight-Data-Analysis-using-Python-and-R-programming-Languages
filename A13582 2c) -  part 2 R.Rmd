@@ -1,0 +1,239 @@
+---
+title: "Question 2c) - part 2 for both years"
+author: "Candidate No. A13582 - Akithmi Wasalathanthri"
+date: "2024-03-29"
+output: html_document
+---
+"
+**********************************************************************************
+"*Visualizing the coefficients across the two years 2006 and 2007 for - part 1*
+**********************************************************************************
+
+# "Importing the necessary libraries for this segment"
+```{r}
+# "Importing the necessary libraries for question"
+library(readr) # "For reading CSV files"
+library(dplyr) # "For data manipulation"
+library(ggplot2) # "For data visualization"
+library(tidyr)
+
+```
+
+# "Reading the CSV files that are saved from part 1"
+```{r}
+merged_coefficients <- read.csv("C:/Users/user/Desktop/progdata/merged_coefficients.csv")
+```
+
+```{r}
+
+# "Extract data for each year"
+coefficients_2006 <- subset(merged_coefficients, data_year == 2006)
+coefficients_2006 <- coefficients_2006[, !(names(coefficients_2006) %in% "data_year")]
+
+coefficients_2007 <- subset(merged_coefficients, data_year == 2007)
+coefficients_2007 <- coefficients_2007[, !(names(coefficients_2007) %in% "data_year")]
+
+# "Plotting"
+par(mfrow=c(1,1), mar=c(5,5,2,5)) 
+plot(1:length(coefficients_2006), coefficients_2006[1,], type='o', col='blue', xlab='Features', ylab='Coefficients', main='Coefficients Comparison for 2006 and 2007')
+points(1:length(coefficients_2007), coefficients_2007[1,], type='o', col='red')
+legend('topright', legend=c('2006', '2007'), col=c('blue', 'red'), pch=1)
+axis(1, at=1:length(coefficients_2006), labels=names(coefficients_2006), las=2)
+grid()
+
+```
+
+**********************************************
+*"(1) Analyzing Departure Date Attribute"*
+**********************************************
+
+```{r}
+# "Define the desired columns"
+desired_columns <- c('data_year', 'Year', 'Month', 'DayofMonth', 'DayOfWeek', 'DepTime')
+
+# "Extract the desired columns"
+dep_date <- merged_coefficients[, desired_columns]
+
+# "Display the extracted columns"
+print(dep_date)
+```
+
+```{r, fig.height= 6}
+# "Filter data for 2006 and 2007"
+data_2006 <- dep_date[dep_date$data_year == 2006, -1]
+data_2007 <- dep_date[dep_date$data_year == 2007, -1]
+
+par(mfrow=c(1,1), mar=c(5,5,2,5)) # Adjust margin if needed
+plot(1:length(data_2006), data_2006, type = 'o', col='#740580', xlab='Coefficients', ylab='Coefficient Values', main='Coefficients for 2006 and 2007', lwd = 3)
+points(1:length(data_2007), data_2007, type='o', col='#ff1d68', lwd = 3)
+legend('topright', legend=c('2006', '2007'), col=c('#740580', '#ff1d68'), pch=1)
+axis(1, at=1:length(data_2006), labels=names(data_2006), las=2)
+grid()
+```
+
+************************************************
+*"(2) Scheduled Departure and Arrival times"*
+************************************************
+
+```{r}
+desired_columns <- c('data_year', 'CRSDepTime', 'CRSArrTime', 'CRSElapsedTime', 'DepDelay', 'NASDelay', 'LateAircraftDelay', 'WeatherDelay', 'SecurityDelay', 'CarrierDelay')
+
+# "Extracting the desired columns"
+CRS_ArrDep <- merged_coefficients[, desired_columns]
+CRS_ArrDep
+```
+
+```{r, echo=FALSE, fig.width=12, fig.height=6}
+# "Filter data for 2006 and 2007"
+CRS_data_2006 <- CRS_ArrDep[CRS_ArrDep$data_year == 2006, -1]
+CRS_data_2007 <- CRS_ArrDep[CRS_ArrDep$data_year == 2007, -1]
+
+par(mfrow=c(1,1), mar=c(5,5,2,5)) # Adjust margin if needed
+plot(1:length(CRS_data_2006), CRS_data_2006, type='o-', col='#f03630', xlab='Coefficients', ylab='Coefficient Values', main='Coefficients for 2006 and 2007', lwd = 3)
+points(1:length(CRS_data_2007), CRS_data_2007, type='o-', col='#fa994a', lwd = 3)
+legend('topright', legend=c('2006', '2007'), col=c('#f03630', '#fa994a'), pch=1)
+axis(1, at=1:length(CRS_data_2006), labels=names(CRS_data_2006), las=2)
+grid()
+
+```
+
+*************************************************************************************
+*"(3) Coordinates and Distance between the departure and planned arrival airports"*
+*************************************************************************************
+
+```{r}
+# "Define the additional columns to extract"
+num_columns <- c('data_year', 'lat_origin', 'long_origin', 'lat_dest', 'long_dest', 'country_origin', 'country_dest', 'state_dest', 'iata_origin', 'iata_dest')
+
+# "Extract the additional columns"
+ArrDep_airports_num <- merged_coefficients[, num_columns]
+print(ArrDep_airports_num)
+```
+
+```{r , echo=FALSE, fig.width=12, fig.height=6}
+
+
+# "Additional columns to extract"
+num_columns <- c('data_year', 'lat_origin', 'long_origin', 'lat_dest', 'long_dest', 'country_origin', 'country_dest', 'state_dest', 'iata_origin', 'iata_dest')
+ArrDep_airports_num <- merged_coefficients[, num_columns]
+
+# "Plot"
+bar_color <- '#7891c4'
+point_color <- '#fd8f52'
+
+# "Extract data for 2006 and 2007"
+data_2006 <- ArrDep_airports_num[ArrDep_airports_num$data_year == 2006, -1]
+data_2007 <- ArrDep_airports_num[ArrDep_airports_num$data_year == 2007, -1]
+
+# "Get column names"
+columns <- names(data_2006)
+
+# "Plot bars for 2007"
+barplot(as.matrix(data_2007), beside = TRUE, col = bar_color, main = 'Dataset Visualization', names.arg = columns, ylim = range(c(data_2006, data_2007)))
+
+# "Plot circles for 2006 with increased spacing"
+points(x = seq(1, length(data_2006) * 2.25, by = 2.25), y = unlist(data_2006), col = point_color, pch = 19, cex = 2)
+legend('topright', legend=c('2006', '2007'), col=c(point_color, bar_color), pch=c(19, NA), title='Year')
+```
+
+*********************
+*"(4) The Carrier"*
+*********************
+
+```{r}
+
+carrier_cols <- c('data_year', 'UniqueCarrier_code')
+carrier_data <- merged_coefficients[, carrier_cols]
+print(carrier_data)
+```
+
+```{r}
+
+data <- list(
+    'Coefficient' = c(0.020960, 0.036134)
+)
+
+df <- as.data.frame(data)
+
+# "Set the figure size"
+options(repr.plot.width=8, repr.plot.height=6)
+
+# "Define bar width"
+bar_width <- 0.4
+
+# "Plot" 
+barplot(df$Coefficient, beside = TRUE, col = c('#f03630', '#fa994a'), main = 'UniqueCarrier_code Coefficient Comparison', ylab = 'Coefficient', xlab = 'Year', names.arg = c('2006', '2007'))
+
+legend('topright', legend=c('2006', '2007'), fill=c('#f03630', '#fa994a'))
+```
+
+end.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+"

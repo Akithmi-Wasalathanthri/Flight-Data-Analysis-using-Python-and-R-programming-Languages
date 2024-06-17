@@ -1,0 +1,575 @@
+---
+title: "Introduction Code for Question (2)"
+author: "Candidate No. A13582 - Akithmi Wasalathanthri"
+date: "2024-05-02"
+output: html_document
+---
+
+************************************************
+*"Initial Data Cleaning And Analysing for Q (2)"*
+************************************************
+
+**********************************
+*"Importing necessary libraries"*
+**********************************
+```{r}
+ install.packages("ggplot2")
+ install.packages("dplyr")
+ install.packages("tidyr")
+ install.packages("lubridate")
+ install.packages("gridExtra")
+ install.packages("ggpubr")
+ install.packages("ggthemes")
+
+library(ggplot2)  # for "plotting"
+library(dplyr)    # for "data manipulation"
+library(tidyr)    # for "data tidying"
+library(lubridate) # for "working with dates"
+library(ggplot2)  # for "data visualization"
+library(gridExtra) # for "arranging plots"
+library(ggpubr)   # for "combining plots"
+library(ggthemes) # for "additional ggplot themes"
+```
+
+*******************************************
+*"(1) Reading all the datasets neccessary"*
+*******************************************
+
+```{r}
+# "Reading the three latest saved datasets from the Harvard Dataverse given in the question"
+dt_2008 <- read.csv("C:/Users/user/Downloads/Programming/2008.csv")
+dt_2007 <- read.csv("C:/Users/user/Desktop/progdata/data2007.csv")
+dt_2006 <- read.csv("C:/Users/user/Desktop/progdata/data2006.csv")
+
+airportsdt <- read.csv("C:/Users/user/Downloads/Programming/airports.csv")
+carriersdt <- read.csv("C:/Users/user/Downloads/Programming/carriers.csv")
+planedatadt <- read.csv("C:/Users/user/Downloads/Programming/plane-data.csv")
+variable_descriptionsdt <- read.csv ("C:/Users/user/Downloads/Programming/variable-descriptions.csv")
+# "Reading the additional datasets required for the question 2"
+```
+
+```{r}
+print(variable_descriptionsdt)
+print (carriersdt)
+print (airportsdt)
+print (planedatadt)
+```
+
+*****"Variable Descriptions dataset contains what each variable is about, which is not used for any calculation and analysis steps"*****
+
+```{r}
+print(dim(dt_2008))
+# Year 2008
+print(dim(dt_2007))
+#Year 2007
+print(dim(dt_2006))
+#Year 2006
+```
+
+**********************************************************************************************
+*"check for missing datapoints in 2008.csv (due to the small size compared to other years shown above)"*
+**********************************************************************************************
+```{r}
+datasets <- list(dt_2008, dt_2007, dt_2006)
+years <- c(2008, 2007, 2006)
+
+for (i in 1:length(datasets)) {
+  unique_values <- sapply(datasets[[i]][c('Month', 'DayofMonth')], function(x) length(unique(x)))
+  cat("Unique values for dataset", years[i], ":\n")
+  print(unique_values)
+  cat("\n")
+}
+```
+
+*****"2008 Dataset only has 2 months in the dataset which results in less information for us to analyze so going forward with the question we dont use the 2008 Dataset."******
+
+************************************************************
+*"(2) Combining 2006 and 2007 Datasets into one data set"*
+************************************************************
+
+```{r}
+# "Merging datasets dt_2006 and dt_2007"
+merged_dt <- rbind(dt_2006, dt_2007)
+```
+
+```{r}
+# "Add index numbers as a new column"
+merged_dt$index <- seq_len(nrow(merged_dt))
+head(merged_dt)
+```
+
+
+```{r}
+# "Dropping duplicates"
+index_to_remove <- c(752507, 888039, 1039372, 1462455, 2653292, 3243627, 5070841, 
+                     354401, 356313, 4076804, 4076806, 4076808, 4076810, 4076812, 
+                     4076814, 4076816, 4076818, 4076820, 4076822, 4076828, 4076830, 
+                     4076832, 4076834, 4076836, 4076838, 4722034, 4730254, 4730256, 
+                     5351716, 5965994, 5967057, 6582952, 7195361, 7195363)
+
+
+index_to_remove <- index_to_remove - 1
+merged_dt <- merged_dt[-index_to_remove, ]
+print(head(merged_dt))
+
+# "Saving the merged dataset to a CSV file"
+# "write.csv(merged_dt, file = "C:/Users/user/Desktop/progdata/mergedata2006n2007.csv", row.names = FALSE)"
+
+#"Putting the '#' symbol becuase the file is already saved in the python code of the introduction code and doesnt need to be repeated"
+```
+
+********************************
+*"(3) Understanding the Data"*
+********************************
+
+```{r}
+print(dim(airportsdt))
+print(dim(carriersdt))
+print(dim(planedatadt))
+print(dim(merged_dt))
+```
+
+```{r}
+print(colnames(airportsdt))
+print(colnames(carriersdt))
+print(colnames(planedatadt))
+print(colnames(merged_dt))
+```
+
+```{r}
+print(sapply(airportsdt, class))
+print(sapply(carriersdt, class))
+print(sapply(planedatadt, class))
+print(sapply(merged_dt, class))
+```
+
+```{r}
+# "Correlation Heat map for numerical variables"
+num_col <- merged_dt[sapply(merged_dt, is.numeric)]
+num_col <- num_col[!apply(is.na(num_col), 2, any)]
+corrmat <- cor(num_col)
+corr_df <- as.data.frame(as.table(corrmat))
+names(corr_df) <- c("Var1", "Var2", "Correlation")
+ggplot(corr_df, aes(Var1, Var2, fill = Correlation)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white", 
+                       midpoint = 0, limit = c(-1,1), space = "Lab", 
+                       name="Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = "Correlation Heatmap")
+```
+
+******"The correlation matrix helps us understand how different variables in our dataset are related to each other. It shows us if there's a linear relationship between them, meaning one variable can be predicted from another. By analyzing this matrix, we can identify which variables might be redundant or exhibit multicollinearity, where they're highly correlated with each other."******
+
+*******************************************
+*"(4)  Exploratory Data Analiysis (EDA)"*
+*******************************************
+
+"We focus on three main flight operational outcomes;
+ (1) Delayed Flights,
+ (2) Cancelled Flights,
+ (3) Diverted Flights."
+ 
+```{r}
+# "Creating 'DepartureDate' new column to show year, month, and day of month together in 1 column"
+merged_dt$Departure_Date_ <- as.Date(paste(merged_dt$Year, merged_dt$Month, merged_dt$DayofMonth, sep = "-"), format = "%Y-%m-%d")
+print(head(merged_dt$Departure_Date_))
+```
+
+```{r}
+
+outcome_dataset <- merged_dt
+# "Define conditions using case_when()"
+outcome_dataset <- outcome_dataset %>%
+  mutate(
+    Flight_Outcome = case_when(
+      ArrDelay <= 15 ~ 0,
+      ArrDelay >= 15 & ArrDelay < 60 ~ 1,
+      ArrDelay >= 60 ~ 2,
+      Diverted == 1 ~ 3,
+      Cancelled == 1 ~ 4,
+      TRUE ~ NA_real_  # Add this line to handle unmatched cases
+    ),
+    CancellationCode = ifelse(CancellationCode == "A", 0, ifelse(CancellationCode == "B", 1, ifelse(CancellationCode == "C", 2, NA_integer_)))
+  )
+```
+
+```{r}
+
+columns_to_drop <- c("Year", "DayofMonth", "DepTime", "DepDelay",
+                   "ArrTime", "CRSArrTime", "ActualElapsedTime", "CRSElapsedTime",
+                   "Diverted", "Cancelled", "Distance", "FlightNum", "TailNum")
+
+# "Drop columns from outcome_dataset"
+outcome_dataset <- outcome_dataset[, !names(outcome_dataset) %in% columns_to_drop]
+```
+
+"To simplify our analysis and make our dataset more manageable, we'll remove some of these redundant variables and create new ones. This will help us focus on the most relevant aspects of our data and avoid unnecessary complexity."
+
+"Flight_Outcome represents whether the flight was;
+on time - (0)
+slightly delayed  - (1) 
+highly delayed - (2) 
+diverted - (3) 
+cancelled - (4)
+(0, 1, 2) are based on delayed flights outcome under the flight operations"
+```{r}
+
+data_2006 <- subset(outcome_dataset, as.POSIXlt(Departure_Date_)$year + 1900 == 2006)
+data_2007 <- subset(outcome_dataset, as.POSIXlt(Departure_Date_)$year + 1900 == 2007)
+# "Plot for 2006"
+ggplot(data_2006, aes(x = Flight_Outcome, fill = factor(Flight_Outcome))) +
+  geom_bar() +
+  scale_fill_manual(values = c('skyblue', 'lightgreen', 'salmon','red', '#e78ac3')) +
+  labs(title = 'Flight Operational Outcome Distribution - 2006',
+       x = 'Flight_Outcome',
+       y = 'Count') +
+  theme_minimal()
+
+# "Plot for 2007"
+ggplot(data_2007, aes(x = Flight_Outcome, fill = factor(Flight_Outcome))) +
+  geom_bar() +
+  scale_fill_manual(values = c('skyblue', 'lightgreen', 'salmon', 'red', '#e78ac3')) +
+  labs(title = 'Flight Operational Outcome Distribution - 2007',
+       x = 'Flight_Outcome',
+       y = 'Count') +
+  theme_minimal()
+```
+
+
+```{r}
+# "Plot for 2006"
+pie_2006 <- ggplot(data_2006, aes(x = "", fill = factor(Flight_Outcome))) +
+  geom_bar(width = 1, stat = "count") +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  scale_fill_manual(values = c('skyblue', 'lightgreen', 'salmon', 'red', '#e78ac3')) +
+  labs(title = "  2006 - Outcome Distribution") +
+  theme(plot.title = element_text(hjust = 0.5))
+
+# "Plot for 2007"
+pie_2007 <- ggplot(data_2007, aes(x = "", fill = factor(Flight_Outcome))) +
+  geom_bar(width = 1, stat = "count") +
+  coord_polar("y", start = 0) +
+  theme_void() +
+  scale_fill_manual(values = c('skyblue', 'lightgreen', 'salmon', 'red', '#e78ac3')) +
+  labs(title = "2007 - Outcome Distribution") +
+  theme(plot.title = element_text(hjust = 0.5))
+# "Display both plots"
+grid.arrange(pie_2006, pie_2007, nrow = 1)
+```
+
+"Flights are delayed more in 2007 compared to 2006, with the percentage of flights on-time for 2006 2.1% higher than 2007. Similarly, 2007 has more cancelled flights than 2006 but both years have the same percentages of diverted flights."
+
+****************************************************
+*"(5) Flight Operational Outcome (Further EDA):"*
+****************************************************
+
+****************************
+*"(i) Delayed Flights EDA"*
+****************************
+```{r}
+# "Checking for any null values in the dataset"
+colSums(is.na(merged_dt))
+```
+
+"If we adress NA's now, i it could potentially lead to loss of important datapoints. Let's instead try to see if there is a rational explanation for some of theese, i.e. if a flight is cancelled, then any delay entry shouldn't be possible."
+
+```{r}
+# "Load required libraries"
+library(corrplot)
+library(zoo)
+
+# "Select columns for analysis"
+cancelled_dt <- merged_dt[, c("Cancelled", "ArrDelay", "DepDelay", "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay")]
+
+# "Replace NA values with zeros"
+cancelled_dt <- na.fill(cancelled_dt, fill = 0)
+corr_matrix <- cor(cancelled_dt)
+corrplot(corr_matrix, method = "color", type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, addrect = 3)
+
+title("Correlation Heatmap of Cancelations and Delays")
+
+```
+
+```{r}
+# "Select columns for analysis"
+diverted_dt <- merged_dt[, c("Diverted", "ArrDelay", "DepDelay", "CarrierDelay", "WeatherDelay", "NASDelay", "SecurityDelay", "LateAircraftDelay")]
+
+# "Replace NA values with zeros"
+diverted_dt <- na.fill(diverted_dt, fill = 0)
+corr_matrix <- cor(diverted_dt)
+corrplot(corr_matrix, method = "color", type = "upper", order = "hclust", 
+         tl.col = "black", tl.srt = 45, addrect = 3)
+title("Correlation Heatmap of Divertion and Delays")
+```
+
+```{r}
+#"To analyse this case we further look into the cancelled flights data"
+cancel_dt <- merged_dt[, c("Cancelled", "ArrDelay", "DepDelay")]
+cancel_ <- subset(cancel_dt, Cancelled == 1)#"cancelled flights"
+print(cancel_)
+print(colSums(is.na(cancel_)))#"missing values"
+```
+
+"As anticipated, when a flight is canceled, there are no delay entries. In fact, the count of NA values for delays matches the row count in the DataFrame. Therefore, it's logical to select data that excludes canceled flights."
+```{r}
+#"dataframes without cancelled flights."
+merged_dt__ <- merged_dt[merged_dt$Cancelled == 0, ]
+#"Similarly if a plane is diverted, then arrival delay entry should be impossible."
+#"remaining NA values corresponds to diverted in the same way as cancelled."
+merged_dt__ <- merged_dt__[merged_dt__$Diverted == 0, ]
+```
+
+
+```{r}
+# "Count the number of missing values in each column"
+missing_values <- colSums(is.na(merged_dt__))
+print(colSums)
+```
+
+```{r}
+# "Merge with carriersdt dataframe"
+merged_dt__ <- merge(merged_dt__, carriersdt, by.x = "UniqueCarrier", by.y = "Code", all.x = FALSE)
+colnames(merged_dt__)[colnames(merged_dt__) == "Description"] <- "Carrier"
+
+# "Create delay column"
+merged_dt__$delay <- merged_dt__$DepDelay + merged_dt__$ArrDelay
+
+# "Create dep_hour_standard column"
+merged_dt__$dep_hour_standard <- merged_dt__$DepTime / 100 * 1.0386100
+
+# "Create Date column"
+merged_dt__$Date <- as.POSIXct(paste(merged_dt__$Year, merged_dt__$Month, merged_dt__$DayofMonth, merged_dt__$dep_hour_standard), format="%Y %m %d %H%M")
+merged_dt__$dep_hour_int <- as.integer(merged_dt__$DepTime / 100)
+merged_dt__$Date_bin <- as.POSIXct(paste(merged_dt__$Year, merged_dt__$Month, merged_dt__$DayofMonth, merged_dt__$dep_hour_int), format="%Y %m %d %H")
+head(merged_dt__)
+```
+
+```{r}
+# "Select delay-related columns"
+delay_dt <- merged_dt__[c('ArrDelay', 'DepDelay', 'CarrierDelay', 'WeatherDelay', 'NASDelay',
+                          'SecurityDelay', 'LateAircraftDelay', 'delay')]
+colnames(delay_dt) <- c('Arrival delay', 'Departure Delay', 'Carrier Delay', 'Weather Delay',
+                        'NAS Delay', 'Security Delay', 'Late Aircraft Delay', 'Total Delay')
+
+# "Generate summary statistics"
+delay_info_table <- summary(delay_dt)
+delay_info_table <- format(delay_info_table, digits = 2, scientific = FALSE)
+delay_info_table <- data.frame(Delay_Type = rownames(delay_info_table), delay_info_table, row.names = NULL)
+rownames(delay_info_table) <- NULL
+print(delay_info_table)
+
+```
+
+"exploring departure Delay and arrival delay maximum outliers"
+```{r}
+exp_del <- merged_dt__[c('Carrier', 'TailNum', 'DepDelay', 'ArrDelay')]
+outlier_del <- subset(exp_del, ArrDelay > 2000 & DepDelay > 2000)
+print(outlier_del)
+```
+
+```{r}
+# "Filter out rows where 'TailNum' is not equal to 'N329NW'"
+merged_dt__ <- merged_dt__[merged_dt__$TailNum != 'N329NW', ]
+```
+
+```{r}
+delay_carrier <- merged_dt__ %>%
+  group_by(Carrier) %>%
+  summarise(flights = n())  
+
+# "Total flights"
+delay_carrier$total_flights <- table(merged_dt__$Carrier)[delay_carrier$Carrier]
+delay_carrier <- data.frame(delay_carrier)
+
+# "Create carrier total delays dataset"
+delay_carrier2 <- merged_dt__ %>%
+  filter(delay > 0) %>%
+  group_by(Carrier) %>%
+  summarise(total_delays = n())
+
+# "Merge delay_carrier and delay_carrier2 datasets"
+delay_merge <- merge(delay_carrier, delay_carrier2, by = "Carrier", all.x = TRUE)
+
+# "Calculate percentage delay column
+delay_merge$percentage <- delay_merge$total_delays / delay_merge$flights
+
+# "Replace long carrier name with shortened version"
+delay_merge$Carrier <- gsub('US Airways Inc. (Merged with America West 9/05. Reporting for both starting 10/07.)', 'US Airways Inc.', delay_merge$Carrier)
+```
+
+```{r}
+# "Plotting total flights by carrier"
+p1 <- ggplot(delay_merge, aes(x = reorder(Carrier, flights), y = flights)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total flights by carrier", x = "Carrier", y = "Count (mio.)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+# "Plotting total delays by carrier"
+p2 <- ggplot(delay_merge, aes(x = reorder(Carrier, total_delays), y = total_delays)) +
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  labs(title = "Total delays by carrier", x = "Carrier", y = "No. of total delays") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+# "Plotting percentage of delays by carrier"
+p3 <- ggplot(delay_merge, aes(x = reorder(Carrier, percentage), y = percentage)) +
+  geom_bar(stat = "identity", fill = "salmon") +
+  labs(title = "Percentage of delays by carrier", x = "Carrier", y = "Percentage of delays") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+ggsave("EDA_plot4_total_flights.png", plot = p1, width = 8, height = 6, units = "in", dpi = 300)
+ggsave("EDA_plot4_total_delays.png", plot = p2, width = 8, height = 6, units = "in", dpi = 300)
+ggsave("EDA_plot4_percentage_delays.png", plot = p3, width = 8, height = 6, units = "in", dpi = 300)
+print(p1)
+print(p2)
+print(p3)
+```
+```{r}
+delay_by_airport <- merge(merged_dt__, airportsdt, by.x = "Origin", by.y = "iata", all = FALSE)
+```
+
+```{r}
+delay_by_airport
+```
+
+"We only choose the top 20 airports with the most number of flights in order becuase there is a large number of airpots to consider."
+```{r}
+# "Create airport total flights dataset"
+delayairport1 <- delay_by_airport %>%
+  group_by(airport) %>%
+  summarise(flights = n()) %>%
+  arrange(desc(flights)) %>%
+  rename(airport = airport)  
+
+# "Create carrier total delays dataset"
+delayairport2 <- delay_by_airport %>%
+  filter(delay > 0) %>%
+  group_by(airport) %>%
+  summarise(total_delays = n()) %>%
+  rename(airport = airport)  
+
+
+delayairport_merge <- merge(delayairport1, delayairport2, by = "airport", all.x = TRUE)
+# "Calculate percentage delay column"
+delayairport_merge$percentage <- delayairport_merge$total_delays / delayairport_merge$flights
+# "Subset to top 20 airports"
+delayairport_merge <- head(delayairport_merge[order(delayairport_merge$flights, decreasing = TRUE), ], 20)
+print(delayairport_merge)
+```
+
+```{r}
+# "Total flights by airport"
+p1 <- ggplot(delayairport_merge, aes(x = reorder(airport, flights), y = flights)) +
+  geom_bar(stat = "identity", fill = "skyblue") +
+  labs(title = "Total flights by airport", x = "Airport", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+# "Total delays by airport"
+p2 <- ggplot(delayairport_merge, aes(x = reorder(airport, total_delays), y = total_delays)) +
+  geom_bar(stat = "identity", fill = "lightgreen") +
+  labs(title = "Total delays by airport", x = "Airport", y = "No. of total delays") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+# "Percentage of delays by airport"
+p3 <- ggplot(delayairport_merge, aes(x = reorder(airport, percentage), y = percentage)) +
+  geom_bar(stat = "identity", fill = "salmon") +
+  labs(title = "Percentage of delays by airport", x = "Airport", y = "Percentage of delays") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  coord_flip()
+
+ggsave("total_flights_by_airport.png", plot = p1, width = 8, height = 6, units = "in", dpi = 300)
+ggsave("total_delays_by_airport.png", plot = p2, width = 8, height = 6, units = "in", dpi = 300)
+ggsave("percentage_of_delays_by_airport.png", plot = p3, width = 8, height = 6, units = "in", dpi = 300)
+print(p1)
+print(p2)
+print(p3)
+```
+********************************
+*"(ii) Cancelled Flights EDA"*
+********************************
+
+```{r}
+p <- ggplot(CanFlight__, aes(x = CancellationCode, y = 0, fill = CancellationCode)) +
+  geom_violin() +
+  labs(title = "Violin Plot of Cancellation Codes", x = "Cancellation Code", y = "Density") +
+  scale_fill_manual(values = "skyblue") +
+  theme_minimal()
+print(p)
+
+```
+
+```{r}
+
+CanFlight__ <- CanFlight__[!is.na(CanFlight__$CancellationCode), ]
+# "Pie chart"
+pie_chart <- ggplot(CanFlight__, aes(x = "", fill = factor(CancellationCode))) +
+  geom_bar(width = 1, color = "white") +
+  coord_polar("y", start = 0) +
+  labs(title = "Cancellation Code Distribution (Pie Chart)", fill = "Cancellation Code") +
+  theme_void() +
+  theme(legend.position = "bottom") +
+  scale_fill_manual(values = c("skyblue", "lightgreen", "salmon")) +
+  geom_text(aes(label = scales::percent((..count..)/sum(..count..))), stat = "count", position = position_stack(vjust = 0.5)) +
+  theme(plot.title = element_text(size = 14, face = "bold"))
+
+# "Bar plot with 'CancellationCode' as factor"
+bar_plot <- ggplot(CanFlight__, aes(x = factor(CancellationCode), fill = factor(CancellationCode))) +
+  geom_bar() +
+  labs(title = "Cancellation Code Distribution (Bar Plot)", x = "Cancellation Code", y = "Count") +
+  theme_minimal() +
+  scale_fill_manual(values = c("skyblue", "lightgreen", "salmon"))
+grid.arrange(pie_chart, bar_plot, ncol = 2, widths = c(0.5, 0.5))
+```
+
+"0 = carrier, 1 = weather, 2 = NAS"
+
+```{r}
+
+CanFlight__ <- CanFlight__[!is.na(CanFlight__$CancellationCode), ]
+# "Group by 'Departure_Date_' and count cancellations"
+cancellation_counts <- aggregate(CanFlight__$CancellationCode, by=list(CanFlight__$Departure_Date_), FUN=length)
+plot(cancellation_counts$Group.1, cancellation_counts$x, type='l', col='salmon', 
+     xlab='Departure Date', ylab='Count', main='Count of Cancellations by Date', 
+     ylim=c(0, max(cancellation_counts$x) + 1), xaxt='n')
+axis(1, at=seq(1, length(cancellation_counts$Group.1), by=1), labels=cancellation_counts$Group.1, cex.axis=0.7, las=2)
+```
+
+```{r}
+# "Filtering for diverted and not diverted flights"
+div_flights <- outcome_dataset[outcome_dataset$Flight_Outcome == 4, ]
+not_div_flights <- outcome_dataset[outcome_dataset$Flight_Outcome != 4, ]
+div_flights_count <- nrow(div_flights)
+not_div_flights_count <- nrow(not_div_flights)
+cat("Number of diverted flights:", div_flights_count, "\n")
+cat("Number of not diverted flights:", not_div_flights_count, "\n")
+```
+
+```{r}
+labels <- c("Diverted Flights", "Not Diverted Flights")
+sizes <- c(div_flights_count, not_div_flights_count)
+colors <- c("#ff9999", "#66b3ff")
+pie(sizes, labels = labels, col = colors, main = "Proportion of Diverted and Not Diverted Flights", cex.main = 1.2, cex.lab = 1.2)
+par(mar = c(5, 5, 5, 5)) # Set margin
+asp <- 1 # Aspect ratio
+plot(1, type = "n", axes = FALSE, ann = FALSE, xlim = c(-asp, asp), ylim = c(-1, 1))
+axis(1, at = -asp:asp, labels = FALSE)
+axis(2, at = -1:1, labels = FALSE)
+box()
+
+```
+
+"Diverted flights for the dataset is extremely low so the dataset needs to be balanced before it is analysed which will be done in part (c) of the question."
